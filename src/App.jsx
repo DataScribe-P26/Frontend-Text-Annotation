@@ -13,7 +13,7 @@ function App() {
       <Routes>
       <Route path="/" element={<ProjectList />} />
       <Route path="/project/:projectName" element={<HomePage />} />
-        
+
         <Route path="/UploadPage" element={<UploadPage />} />
         <Route path="/FileContentDisplay" element={<FileContentDisplay />} />
         <Route path="/CreateLabel" element={<CreateLabel />} />
@@ -24,4 +24,3 @@ function App() {
 }
 
 export default App;
-
