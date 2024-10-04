@@ -95,6 +95,18 @@ const FileContentDisplay = () => {
     return result;
   };
 
+  const handleDeleteAnnotation = (annotationToDelete) => {
+    setAnnotations((prevAnnotations) =>
+      prevAnnotations.filter(
+        (annotation) =>
+          !(
+            annotation.text === annotationToDelete.text &&
+            annotation.label.key === annotationToDelete.label.key
+          )
+      )
+    );
+  };
+
   const renderContent = () => {
     if (fileType === "text") {
       return (
@@ -247,6 +259,12 @@ const FileContentDisplay = () => {
                       borderRadius: "0.375rem",
                       padding: "0.25rem 0.5rem",
                       cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      const user = confirm("Do you want to delete");
+                      if (user) {
+                        handleDeleteAnnotation(annotation);
+                      }
                     }}
                   >
                     Delete
