@@ -15,24 +15,20 @@ const FileContentDisplay = () => {
   const [annotations, setAnnotations] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Updated to include both background colors and text colors for contrast
   const labels = [
     {
-      key: "person",
       name: "Person",
       color: "#ef4444",
       bgColor: "#fef2f2",
       textColor: "#991b1b",
     },
     {
-      key: "organization",
       name: "Organization",
       color: "#22c55e",
       bgColor: "#f0fdf4",
       textColor: "#166534",
     },
     {
-      key: "location",
       name: "Location",
       color: "#3b82f6",
       bgColor: "#eff6ff",
@@ -51,34 +47,27 @@ const FileContentDisplay = () => {
   };
 
   const handleLabelChange = (event) => {
-    const labelKey = event.target.value;
-    const label = labels.find((label) => label.key === labelKey);
+    const labelName = event.target.value;
+    const label = labels.find((label) => label.name === labelName);
 
     if (label && selectedText) {
-      const exists = annotations.some(
-        (annotation) =>
-          annotation.text === selectedText &&
-          (fileType === "text" || annotation.index === currentIndex)
-      );
+      const newAnnotation = {
+        text: selectedText,
+        label: label,
+        index: fileType === "text" ? -1 : currentIndex,
+      };
 
-      if (!exists) {
-        const annotation = {
-          text: selectedText,
-          label: label,
-          index: fileType === "text" ? -1 : currentIndex,
-        };
-        setAnnotations((prevAnnotations) => [...prevAnnotations, annotation]);
-        setSelectedText("");
-      } else {
-        setErrorMessage("This text has already been annotated.");
-      }
+      setAnnotations((prevAnnotations) => [...prevAnnotations, newAnnotation]);
+      setSelectedText("");
     }
   };
 
-  const colorizeJsonText = (jsonString) => {
-    let result = jsonString;
+  const colorizeText = (text) => {
+    let result = text;
     const annotationsSorted = annotations
-      .filter((annotation) => annotation.index === currentIndex)
+      .filter(
+        (annotation) => fileType === "text" || annotation.index === currentIndex
+      )
       .sort((a, b) => b.text.length - a.text.length);
 
     annotationsSorted.forEach((annotation) => {
@@ -101,7 +90,7 @@ const FileContentDisplay = () => {
         (annotation) =>
           !(
             annotation.text === annotationToDelete.text &&
-            annotation.label.key === annotationToDelete.label.key
+            annotation.label.name === annotationToDelete.label.name
           )
       )
     );
@@ -109,64 +98,17 @@ const FileContentDisplay = () => {
 
   const renderContent = () => {
     if (fileType === "text") {
+      const content = fileContent.join("\n");
+      const colorizedText = colorizeText(content);
       return (
-        <div className="whitespace-pre-wrap">
-          {fileContent.map((line, lineIndex) => (
-            <React.Fragment key={lineIndex}>
-              {(() => {
-                let lineContent = line;
-                const lineAnnotations = annotations.sort(
-                  (a, b) => b.text.length - a.text.length
-                );
-
-                const parts = [];
-                let lastIndex = 0;
-
-                lineAnnotations.forEach((annotation) => {
-                  const index = lineContent.indexOf(annotation.text, lastIndex);
-                  if (index !== -1) {
-                    if (index > lastIndex) {
-                      parts.push(
-                        <span key={`text-${lastIndex}-${index}`}>
-                          {lineContent.slice(lastIndex, index)}
-                        </span>
-                      );
-                    }
-                    parts.push(
-                      <span
-                        key={`annotation-${index}`}
-                        style={{
-                          backgroundColor: annotation.label.bgColor,
-                          color: annotation.label.textColor,
-                          padding: "0.1rem 0.2rem",
-                          borderRadius: "0.2rem",
-                        }}
-                      >
-                        {annotation.text}
-                      </span>
-                    );
-                    lastIndex = index + annotation.text.length;
-                  }
-                });
-
-                if (lastIndex < lineContent.length) {
-                  parts.push(
-                    <span key={`text-${lastIndex}-end`}>
-                      {lineContent.slice(lastIndex)}
-                    </span>
-                  );
-                }
-
-                return parts.length > 0 ? parts : lineContent;
-              })()}
-              {lineIndex < fileContent.length - 1 && "\n"}
-            </React.Fragment>
-          ))}
-        </div>
+        <pre
+          className="whitespace-pre-wrap"
+          dangerouslySetInnerHTML={{ __html: colorizedText }}
+        />
       );
     } else if (fileType === "json") {
       const content = fileContent[currentIndex];
-      const colorizedJson = colorizeJsonText(JSON.stringify(content, null, 2));
+      const colorizedJson = colorizeText(JSON.stringify(content, null, 2));
       return (
         <pre
           className="whitespace-pre-wrap"
@@ -226,7 +168,7 @@ const FileContentDisplay = () => {
                       padding: "0.25rem 0.5rem",
                     }}
                   >
-                    {annotation.label.key}
+                    {annotation.label.name}
                   </div>
                 </span>
 
@@ -399,7 +341,7 @@ const FileContentDisplay = () => {
                     >
                       <option value="">Select a label</option>
                       {labels.map((label) => (
-                        <option key={label.key} value={label.key}>
+                        <option key={label.name} value={label.name}>
                           {label.name}
                         </option>
                       ))}

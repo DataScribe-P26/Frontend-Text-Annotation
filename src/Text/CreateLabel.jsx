@@ -6,18 +6,17 @@ const CreateLabel = ({
   onCreateLabel,
   currentLabel,
   onUpdateLabel,
+  editMode,
 }) => {
   const [labelName, setLabelName] = useState("");
   const [labelKey, setLabelKey] = useState("");
-  const [labelColor, setLabelColor] = useState("#000000"); // Default color
-
+  const [labelColor, setLabelColor] = useState("#000000");
   useEffect(() => {
     if (currentLabel) {
       setLabelName(currentLabel.name);
       setLabelKey(currentLabel.key);
       setLabelColor(currentLabel.color);
     } else {
-      // Reset fields when creating a new label
       setLabelName("");
       setLabelKey("");
       setLabelColor("#000000");
@@ -39,7 +38,7 @@ const CreateLabel = ({
     };
 
     // If in edit mode, update the label, otherwise create a new one
-    if (currentLabel) {
+    if (editMode && currentLabel) {
       onUpdateLabel(newLabel, currentLabel.key); // Use original key for comparison
     } else {
       onCreateLabel(newLabel);
@@ -71,7 +70,7 @@ const CreateLabel = ({
           ✖
         </button>
         <h2 className="text-2xl font-bold mb-4">
-          {currentLabel ? "Edit Label" : "Create a New Label"}
+          {editMode ? "Edit Label" : "Create a New Label"}
         </h2>
         <form onSubmit={handleFormSubmit} className="space-y-4 overflow-auto">
           {/* Label Name Input */}
@@ -123,7 +122,7 @@ const CreateLabel = ({
               type="submit"
               className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-500 transition-shadow shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-300"
             >
-              {currentLabel ? "Update Label" : "Create Label"}
+              {editMode ? "Update Label" : "Create Label"}
             </button>
           </div>
         </form>
