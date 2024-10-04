@@ -1,58 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import Navbar from './Navbar';
-import Sidebar from './Sidebar';
+import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
 
 const FileContentDisplay = () => {
   const location = useLocation();
-  const { fileContent } = location.state || { fileContent: [] };
+  const { fileContent, fileType } = location.state || {
+    fileContent: [],
+    fileType: "text",
+  };
 
-  const [currentLineIndex, setCurrentLineIndex] = useState(0);
-  const [selectedText, setSelectedText] = useState('');
-  const [annotations, setAnnotations] = useState([]); // To store annotations
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedText, setSelectedText] = useState("");
+  const [annotations, setAnnotations] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const labels = [
-    { key: 'person', name: 'Person', color: 'bg-red-300' },
-    { key: 'organization', name: 'Organization', color: 'bg-green-300' },
-    { key: 'location', name: 'Location', color: 'bg-blue-300' },
+    { key: "person", name: "Person", color: "border-red-500" },
+    { key: "organization", name: "Organization", color: "border-green-500" },
+    { key: "location", name: "Location", color: "border-blue-500" },
   ];
 
-  const nextLine = () => {
-    if (currentLineIndex < fileContent.length - 1) {
-      setCurrentLineIndex(currentLineIndex + 1);
-    }
-  };
-
-  const previousLine = () => {
-    if (currentLineIndex > 0) {
-      setCurrentLineIndex(currentLineIndex - 1);
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'ArrowRight') {
-        nextLine();
-      } else if (event.key === 'ArrowLeft') {
-        previousLine();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [currentLineIndex]);
-
   const handleTextSelect = () => {
-    const selection = window.getSelection().toString();
+    const selection = window.getSelection().toString().trim();
     if (selection) {
       setSelectedText(selection);
-      setShowDropdown(true);
-      setErrorMessage(''); // Reset error message
+      setErrorMessage("");
+    } else {
+      setSelectedText("");
     }
   };
 
@@ -61,24 +36,179 @@ const FileContentDisplay = () => {
     const label = labels.find((label) => label.key === labelKey);
 
     if (label && selectedText) {
-      const trimmedText = selectedText.trim();
       const exists = annotations.some(
-        (annotation) => annotation.text === trimmedText && annotation.lineIndex === currentLineIndex
+        (annotation) =>
+          annotation.text === selectedText &&
+          (fileType === "text" || annotation.index === currentIndex)
       );
 
       if (!exists) {
         const annotation = {
-          text: trimmedText,
+          text: selectedText,
           label: label,
-          lineIndex: currentLineIndex,
+          index: fileType === "text" ? -1 : currentIndex,
         };
         setAnnotations((prevAnnotations) => [...prevAnnotations, annotation]);
-        setSelectedText('');
-        setShowDropdown(false); // Hide dropdown after label is selected
+        setSelectedText("");
       } else {
-        setErrorMessage('This word has already been annotated.');
+        setErrorMessage("This text has already been annotated.");
       }
     }
+  };
+
+  const colorizeJsonText = (jsonString) => {
+    let result = jsonString;
+    const annotationsSorted = annotations
+      .filter((annotation) => annotation.index === currentIndex)
+      .sort((a, b) => b.text.length - a.text.length);
+
+    annotationsSorted.forEach((annotation) => {
+      const escapedText = annotation.text.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
+      const regex = new RegExp(`(${escapedText})`, "g");
+      result = result.replace(
+        regex,
+        `<span class="border-b-2 ${annotation.label.color}">$1</span>`
+      );
+    });
+    return result;
+  };
+
+  const renderContent = () => {
+    if (fileType === "text") {
+      return (
+        <div className="whitespace-pre-wrap">
+          {fileContent.map((line, lineIndex) => (
+            <React.Fragment key={lineIndex}>
+              {(() => {
+                let lineContent = line;
+                const lineAnnotations = annotations.sort(
+                  (a, b) => b.text.length - a.text.length
+                );
+
+                const parts = [];
+                let lastIndex = 0;
+
+                lineAnnotations.forEach((annotation) => {
+                  const index = lineContent.indexOf(annotation.text, lastIndex);
+                  if (index !== -1) {
+                    // Add text before annotation
+                    if (index > lastIndex) {
+                      parts.push(
+                        <span key={`text-${lastIndex}-${index}`}>
+                          {lineContent.slice(lastIndex, index)}
+                        </span>
+                      );
+                    }
+                    // Add annotated text
+                    parts.push(
+                      <span
+                        key={`annotation-${index}`}
+                        className={`border-b-2 ${annotation.label.color}`}
+                      >
+                        {annotation.text}
+                      </span>
+                    );
+                    lastIndex = index + annotation.text.length;
+                  }
+                });
+
+                // Add remaining text
+                if (lastIndex < lineContent.length) {
+                  parts.push(
+                    <span key={`text-${lastIndex}-end`}>
+                      {lineContent.slice(lastIndex)}
+                    </span>
+                  );
+                }
+
+                return parts.length > 0 ? parts : lineContent;
+              })()}
+              {lineIndex < fileContent.length - 1 && "\n"}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    } else if (fileType === "json") {
+      const content = fileContent[currentIndex];
+      const colorizedJson = colorizeJsonText(JSON.stringify(content, null, 2));
+      return (
+        <pre
+          className="whitespace-pre-wrap"
+          dangerouslySetInnerHTML={{ __html: colorizedJson }}
+        />
+      );
+    }
+  };
+
+  const renderAnnotations = () => {
+    const filteredAnnotations = annotations.filter(
+      (annotation) => fileType === "text" || annotation.index === currentIndex
+    );
+
+    return (
+      <div className="mt-4 p-4 bg-white rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold mb-2">Annotations</h3>
+        {filteredAnnotations.length === 0 ? (
+          <p className="text-gray-500">No annotations yet</p>
+        ) : (
+          <div className="space-y-2">
+            {filteredAnnotations.map((annotation, index) => (
+              <div
+                key={index}
+                className="flex items-center p-2 bg-gray-50 rounded"
+              >
+                <span className="text-sm font-medium">
+                  <span className={`border-b-2 ${annotation.label.color}`}>
+                    {annotation.label.name}
+                  </span>
+                </span>
+                <span className="ml-2 text-gray-700">{annotation.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderNavigation = () => {
+    if (fileType === "json") {
+      return (
+        <div className="flex justify-between mt-4">
+          <button
+            onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+            disabled={currentIndex === 0}
+            className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-shadow shadow-lg ${
+              currentIndex === 0 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            Previous
+          </button>
+          <span className="self-center text-gray-700">
+            Item {currentIndex + 1} of {fileContent.length}
+          </span>
+          <button
+            onClick={() =>
+              setCurrentIndex(
+                Math.min(fileContent.length - 1, currentIndex + 1)
+              )
+            }
+            disabled={currentIndex === fileContent.length - 1}
+            className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-shadow shadow-lg ${
+              currentIndex === fileContent.length - 1
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -86,82 +216,53 @@ const FileContentDisplay = () => {
       <Navbar />
       <div className="flex flex-grow">
         <Sidebar />
-        <div className="flex-grow p-8 bg-gradient-to-r from-blue-50 to-blue-100">
-          <h2 className="text-3xl font-bold mb-6">File Content Display</h2>
+        <div className="flex-grow p-8 bg-gradient-to-r from-blue-50 to-blue-100 overflow-auto">
+          <div className="max-w-[74vw] mx-auto">
+            <h2 className="text-3xl font-bold mb-6">File Content Display</h2>
 
-          {/* Display current line */}
-          <div
-            className="text-xl font-semibold mb-4 bg-white p-4 rounded-lg shadow-md relative"
-            onMouseUp={handleTextSelect}
-          >
-            {fileContent[currentLineIndex].split(/(\s+)/).map((part, index) => {
-              const annotated = annotations.find(
-                (annotation) => annotation.text === part.trim() && annotation.lineIndex === currentLineIndex
-              );
-              return (
-                <span
-                  key={index}
-                  className={annotated ? `${annotated.label.color} p-1 mx-1 rounded` : 'mx-1'}
+            <div className="flex flex-col space-y-4">
+              <div
+                className="bg-white p-4 rounded-lg shadow-md relative"
+                onMouseUp={handleTextSelect}
+              >
+                <div
+                  className="text-xl font-semibold"
+                  style={{
+                    maxHeight: "calc(100vh - 400px)",
+                    overflowY: "auto",
+                    overflowX: "auto",
+                  }}
                 >
-                  {part} {/* Maintain the spaces correctly */}
-                </span>
-              );
-            })}
+                  {renderContent()}
+                </div>
 
-            {/* Line Indicator */}
-            <div className="absolute bottom-2 right-2 text-gray-700 text-sm">
-              Line <span className="font-bold">{currentLineIndex + 1}</span> of{' '}
-              <span className="font-bold">{fileContent.length}</span>
-            </div>
-          </div>
+                {selectedText && (
+                  <div className="mt-4">
+                    <select
+                      onChange={handleLabelChange}
+                      className="w-full p-2 border rounded"
+                      value=""
+                    >
+                      <option value="">
+                        Select a label for "{selectedText}"
+                      </option>
+                      {labels.map((label) => (
+                        <option key={label.key} value={label.key}>
+                          {label.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-          {/* Show dropdown when text is selected */}
-          {showDropdown && (
-            <select onChange={handleLabelChange} className="mb-4 p-2 border rounded">
-              <option value="">Select a label</option>
-              {labels.map((label) => (
-                <option key={label.key} value={label.key}>
-                  {label.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Display error message if any */}
-          {errorMessage && <div className="text-red-600 mb-2">{errorMessage}</div>}
-
-          {/* Display annotations for the current line */}
-          {annotations
-            .filter((annotation) => annotation.lineIndex === currentLineIndex)
-            .map((annotation, index) => (
-              <div key={index} className="mt-2 text-sm">
-                <span className={`font-bold ${annotation.label.color} text-white p-1 rounded`}>
-                  {annotation.label.name}:
-                </span>
-                <span className="ml-1">{annotation.text}</span>
+                {errorMessage && (
+                  <div className="text-red-600 mt-2">{errorMessage}</div>
+                )}
               </div>
-            ))}
 
-          {/* Navigation buttons */}
-          <div className="flex justify-between mt-4">
-            <button
-              onClick={previousLine}
-              disabled={currentLineIndex === 0}
-              className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-shadow shadow-lg ${
-                currentLineIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              Previous
-            </button>
-            <button
-              onClick={nextLine}
-              disabled={currentLineIndex === fileContent.length - 1}
-              className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-shadow shadow-lg ${
-                currentLineIndex === fileContent.length - 1 ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              Next
-            </button>
+              {renderNavigation()}
+              {renderAnnotations()}
+            </div>
           </div>
         </div>
       </div>
