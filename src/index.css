@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.custom-scrollbar {
+  --sb-track-color: #8c8b8b;
+  --sb-thumb-color: #524e4e;
+  --sb-vertical-size: 5px;
+  --sb-horizontal-size: 5px; /* Smaller height for horizontal scrollbar */
+  overflow: scroll; /* Enable both scrollbars */
+}
+
+/* Vertical Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: var(--sb-vertical-size); /* Thickness of the vertical scrollbar */
+}
+
+/* Horizontal Scrollbar */
+.custom-scrollbar::-webkit-scrollbar:horizontal {
+  height: var(
+    --sb-horizontal-size
+  ); /* Smaller height for the horizontal scrollbar */
+}
+
+/* Scrollbar track */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--sb-track-color);
+  border-radius: 3px;
+}
+
+/* Vertical scrollbar thumb */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb-color);
+  border-radius: 3px;
+}
+
+/* Horizontal scrollbar thumb */
+.custom-scrollbar::-webkit-scrollbar-thumb:horizontal {
+  background: var(--sb-thumb-color);
+  border-radius: 3px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .custom-scrollbar {
+    scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+  }
+}

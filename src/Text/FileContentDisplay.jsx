@@ -15,10 +15,29 @@ const FileContentDisplay = () => {
   const [annotations, setAnnotations] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Updated to include both background colors and text colors for contrast
   const labels = [
-    { key: "person", name: "Person", color: "border-red-500" },
-    { key: "organization", name: "Organization", color: "border-green-500" },
-    { key: "location", name: "Location", color: "border-blue-500" },
+    {
+      key: "person",
+      name: "Person",
+      color: "#ef4444",
+      bgColor: "#fef2f2",
+      textColor: "#991b1b",
+    },
+    {
+      key: "organization",
+      name: "Organization",
+      color: "#22c55e",
+      bgColor: "#f0fdf4",
+      textColor: "#166534",
+    },
+    {
+      key: "location",
+      name: "Location",
+      color: "#3b82f6",
+      bgColor: "#eff6ff",
+      textColor: "#1e40af",
+    },
   ];
 
   const handleTextSelect = () => {
@@ -70,7 +89,7 @@ const FileContentDisplay = () => {
       const regex = new RegExp(`(${escapedText})`, "g");
       result = result.replace(
         regex,
-        `<span class="border-b-2 ${annotation.label.color}">$1</span>`
+        `<span style="background-color: ${annotation.label.bgColor}; color: ${annotation.label.textColor}">$1</span>`
       );
     });
     return result;
@@ -94,7 +113,6 @@ const FileContentDisplay = () => {
                 lineAnnotations.forEach((annotation) => {
                   const index = lineContent.indexOf(annotation.text, lastIndex);
                   if (index !== -1) {
-                    // Add text before annotation
                     if (index > lastIndex) {
                       parts.push(
                         <span key={`text-${lastIndex}-${index}`}>
@@ -102,11 +120,15 @@ const FileContentDisplay = () => {
                         </span>
                       );
                     }
-                    // Add annotated text
                     parts.push(
                       <span
                         key={`annotation-${index}`}
-                        className={`border-b-2 ${annotation.label.color}`}
+                        style={{
+                          backgroundColor: annotation.label.bgColor,
+                          color: annotation.label.textColor,
+                          padding: "0.1rem 0.2rem",
+                          borderRadius: "0.2rem",
+                        }}
                       >
                         {annotation.text}
                       </span>
@@ -115,7 +137,6 @@ const FileContentDisplay = () => {
                   }
                 });
 
-                // Add remaining text
                 if (lastIndex < lineContent.length) {
                   parts.push(
                     <span key={`text-${lastIndex}-end`}>
@@ -149,23 +170,88 @@ const FileContentDisplay = () => {
     );
 
     return (
-      <div className="mt-4 p-4 bg-white rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-2">Annotations</h3>
+      <div
+        style={{
+          marginTop: "1rem",
+          padding: "1rem",
+          backgroundColor: "white",
+          borderRadius: "0.5rem",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        <h3
+          style={{
+            fontSize: "1.25rem",
+            fontWeight: 600,
+            marginBottom: "0.5rem",
+          }}
+        >
+          Annotations
+        </h3>
         {filteredAnnotations.length === 0 ? (
-          <p className="text-gray-500">No annotations yet</p>
+          <p style={{ color: "#6b7280" }}>No annotations yet</p>
         ) : (
-          <div className="space-y-2">
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+          >
             {filteredAnnotations.map((annotation, index) => (
               <div
                 key={index}
-                className="flex items-center p-2 bg-gray-50 rounded"
+                className=" bg-gray-100"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "0.7rem",
+                  borderRadius: "0.3rem",
+                }}
               >
-                <span className="text-sm font-medium">
-                  <span className={`border-b-2 ${annotation.label.color}`}>
-                    {annotation.label.name}
-                  </span>
+                <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                  <div
+                    style={{
+                      backgroundColor: annotation.label.textColor,
+                      color: "white",
+                      borderRadius: "0.375rem",
+                      padding: "0.25rem 0.5rem",
+                    }}
+                  >
+                    {annotation.label.key}
+                  </div>
                 </span>
-                <span className="ml-2 text-gray-700">{annotation.text}</span>
+
+                <span
+                  className="annotation-text w-[85%]  text-ellipsis whitespace-nowrap custom-scrollbar"
+                  style={{
+                    marginLeft: "1rem",
+                    color: "black",
+                    padding: "0.1rem 0.2rem",
+                    borderRadius: "0.2rem",
+                    whiteSpace: "nowrap",
+                    overflow: "auto",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {annotation.text}
+                </span>
+
+                <div
+                  style={{
+                    marginLeft: "auto",
+                    display: "flex",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <button
+                    style={{
+                      backgroundColor: "#ef4444",
+                      color: "white",
+                      borderRadius: "0.375rem",
+                      padding: "0.25rem 0.5rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -177,17 +263,29 @@ const FileContentDisplay = () => {
   const renderNavigation = () => {
     if (fileType === "json") {
       return (
-        <div className="flex justify-between mt-4">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: "1rem",
+          }}
+        >
           <button
             onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
             disabled={currentIndex === 0}
-            className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-shadow shadow-lg ${
-              currentIndex === 0 ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            style={{
+              backgroundColor: "#4f46e5",
+              color: "white",
+              padding: "0.5rem 1rem",
+              borderRadius: "0.5rem",
+              opacity: currentIndex === 0 ? 0.5 : 1,
+              cursor: currentIndex === 0 ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+            }}
           >
             Previous
           </button>
-          <span className="self-center text-gray-700">
+          <span style={{ alignSelf: "center", color: "#374151" }}>
             Item {currentIndex + 1} of {fileContent.length}
           </span>
           <button
@@ -197,11 +295,18 @@ const FileContentDisplay = () => {
               )
             }
             disabled={currentIndex === fileContent.length - 1}
-            className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 transition-shadow shadow-lg ${
-              currentIndex === fileContent.length - 1
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
+            style={{
+              backgroundColor: "#4f46e5",
+              color: "white",
+              padding: "0.5rem 1rem",
+              borderRadius: "0.5rem",
+              opacity: currentIndex === fileContent.length - 1 ? 0.5 : 1,
+              cursor:
+                currentIndex === fileContent.length - 1
+                  ? "not-allowed"
+                  : "pointer",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+            }}
           >
             Next
           </button>
@@ -212,22 +317,48 @@ const FileContentDisplay = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <Navbar />
-      <div className="flex flex-grow">
+      <div style={{ display: "flex", flexGrow: 1 }}>
         <Sidebar />
-        <div className="flex-grow p-8 bg-gradient-to-r from-blue-50 to-blue-100 overflow-auto">
-          <div className="max-w-[74vw] mx-auto">
-            <h2 className="text-3xl font-bold mb-6">File Content Display</h2>
+        <div
+          className="custom-scrollbar"
+          style={{
+            flexGrow: 1,
+            padding: "2rem",
+            background: "linear-gradient(to right, #eff6ff, #dbeafe)",
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ maxWidth: "74vw", margin: "0 auto" }}>
+            <h2
+              style={{
+                fontSize: "1.875rem",
+                fontWeight: "bold",
+                marginBottom: "1.5rem",
+              }}
+            >
+              File Content Display
+            </h2>
 
-            <div className="flex flex-col space-y-4">
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
               <div
-                className="bg-white p-4 rounded-lg shadow-md relative"
+                style={{
+                  backgroundColor: "white",
+                  padding: "1rem",
+                  borderRadius: "0.5rem",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  position: "relative",
+                }}
                 onMouseUp={handleTextSelect}
               >
                 <div
-                  className="text-xl font-semibold"
+                  className="custom-scrollbar"
                   style={{
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
                     maxHeight: "calc(100vh - 400px)",
                     overflowY: "auto",
                     overflowX: "auto",
@@ -237,15 +368,18 @@ const FileContentDisplay = () => {
                 </div>
 
                 {selectedText && (
-                  <div className="mt-4">
+                  <div style={{ marginTop: "1rem" }}>
                     <select
                       onChange={handleLabelChange}
-                      className="w-full p-2 border rounded"
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "0.25rem",
+                      }}
                       value=""
                     >
-                      <option value="">
-                        Select a label for "{selectedText}"
-                      </option>
+                      <option value="">Select a label</option>
                       {labels.map((label) => (
                         <option key={label.key} value={label.key}>
                           {label.name}
@@ -256,7 +390,9 @@ const FileContentDisplay = () => {
                 )}
 
                 {errorMessage && (
-                  <div className="text-red-600 mt-2">{errorMessage}</div>
+                  <div style={{ color: "#dc2626", marginTop: "0.5rem" }}>
+                    {errorMessage}
+                  </div>
                 )}
               </div>
 
